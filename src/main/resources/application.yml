@@ -3,9 +3,6 @@ server:
   servlet:
     context-path: /js-client
 
-servlet:
-  context-path: /js-client
-
 spring:
   application:
     name: mointor-web

@@ -4,7 +4,9 @@ import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -12,6 +14,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -19,7 +22,7 @@ import java.util.Set;
 public class MonitorServiceImpl implements MonitorService {
 
     @Autowired
-    private RedisTemplate redisTemplate;
+    private StringRedisTemplate redisTemplate;
 
     private static final String TOTAL_KEY_NAME = "TOTAL";
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -31,13 +34,12 @@ public class MonitorServiceImpl implements MonitorService {
 
         try {
             synchronized (this) {
-                redisTemplate.opsForHash().increment(TOTAL_KEY_NAME, date, 1);
+                HashOperations<String, String, Integer> hashOperations = redisTemplate.opsForHash();
+                hashOperations.increment(TOTAL_KEY_NAME, date, 1);
+
                 if (!StringUtils.isEmpty(ip)) {
-                    try {
-                        redisTemplate.opsForList().rightPush(ip2Number(ip), time);
-                    } catch (Exception e) {
-                        redisTemplate.opsForList().rightPush(ip, time);
-                    }
+                    ListOperations<String, String> listOperations = redisTemplate.opsForList();
+                    listOperations.rightPush(ip, time);
                 }
             }
         } catch (Exception e) {
@@ -74,12 +76,15 @@ public class MonitorServiceImpl implements MonitorService {
 
     @Override
     public Integer getTotalCount() {
-        HashOperations<String, String, Integer> hashOperations = redisTemplate.opsForHash();
+        HashOperations<String, String, String> hashOperations = redisTemplate.opsForHash();
         Set<String> keys = hashOperations.keys(TOTAL_KEY_NAME);
 
         int total = 0;
         for (String key : keys) {
-            total += hashOperations.get(TOTAL_KEY_NAME, key);
+            String s = hashOperations.get(TOTAL_KEY_NAME, key);
+            if (Objects.nonNull(s)) {
+                total += Integer.parseInt(s);
+            }
         }
 
         return total;
