@@ -1,0 +1,16 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /js-client
+
+servlet:
+  context-path: /js-client
+
+spring:
+  application:
+    name: mointor-web
+
+  redis:
+    host: 47.103.16.48
+#    host: 127.0.0.1
+    port: 6379
